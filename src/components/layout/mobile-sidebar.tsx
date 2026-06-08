@@ -39,7 +39,7 @@ const NAV_SECTIONS = [
   { label: 'Patient Care', items: ['Patients', 'Visits'] },
   { label: 'Laboratory', items: ['Test Catalog', 'Test Orders', 'Samples', 'Results'] },
   { label: 'Reporting', items: ['Reports', 'Invoices'] },
-  { label: 'Administration', items: ['Users', 'Clients'] },
+  { label: 'Administration', items: ['Users', 'Clients', 'Audit Logs', 'Lab Settings', 'Billing'] },
   { label: 'Client Portal', items: ['My Reports', 'My Patients', 'Test Requests'] },
 ];
 
@@ -50,7 +50,7 @@ export function MobileSidebar() {
   const filteredItems = NAV_ITEMS.filter((item) => user && item.roles.includes(user.role));
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-sidebar">
       <div className="flex h-16 items-center gap-2.5 border-b border-border/50 px-6">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
           <Activity className="h-4 w-4 text-white" />

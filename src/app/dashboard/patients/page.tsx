@@ -3,17 +3,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
+import api, { getErrorMessage } from '@/lib/api';
 import type { ApiResponse, Patient } from '@/types';
 import { PageHeader } from '@/components/shared/page-header';
 import { DataTable, Column } from '@/components/shared/data-table';
 import { Input } from '@/components/ui/input';
 import { GENDER_LABELS } from '@/lib/constants';
+import { downloadCsv } from '@/lib/csv';
 import { format } from 'date-fns';
-import { Search, UserPlus, X } from 'lucide-react';
+import { Download, Search, UserPlus, X } from 'lucide-react';
 import { PageTransition } from '@/components/shared/page-transition';
 import { FadeIn } from '@/components/shared/animations';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function PatientsPage() {
   const router = useRouter();
@@ -33,15 +35,22 @@ export default function PatientsPage() {
     };
   }, [search]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['patients', page, debouncedSearch],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: '20' });
-      if (debouncedSearch) params.set('search', debouncedSearch);
+      if (debouncedSearch) params.set('searchTerm', debouncedSearch);
       const { data } = await api.get<ApiResponse<Patient[]>>(`/patients?${params}`);
       return data;
     },
+    refetchOnMount: 'always',
   });
+
+  useEffect(() => {
+    if (isError && error) {
+      toast.error(getErrorMessage(error));
+    }
+  }, [isError, error]);
 
   const columns: Column<Patient>[] = [
     { header: 'MRN', accessorKey: 'mrn', className: 'font-mono text-[13px] text-primary/80' },
@@ -90,6 +99,19 @@ export default function PatientsPage() {
     },
   ];
 
+  const exportPatients = () => {
+    const rows = (data?.data ?? []).map((patient) => ({
+      MRN: patient.mrn,
+      Name: `${patient.firstName} ${patient.lastName}`,
+      Gender: GENDER_LABELS[patient.gender],
+      DOB: format(new Date(patient.dateOfBirth), 'yyyy-MM-dd'),
+      Phone: patient.phone,
+      Email: patient.email ?? '',
+      Registered: format(new Date(patient.createdAt), 'yyyy-MM-dd'),
+    }));
+    downloadCsv(`patients-page-${page}.csv`, rows);
+  };
+
   return (
     <PageTransition>
       <PageHeader
@@ -108,7 +130,7 @@ export default function PatientsPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
             <Input
               placeholder="Search by name, MRN, phone..."
-              className="h-10 rounded-lg border-border/50 bg-white pl-9 pr-9 text-[13.5px] placeholder:text-muted-foreground/50 focus-visible:ring-2 focus-visible:ring-primary/20"
+              className="h-10 rounded-lg border-border/50 bg-card pl-9 pr-9 text-[13.5px] placeholder:text-muted-foreground/50 focus-visible:ring-2 focus-visible:ring-primary/20"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -126,6 +148,16 @@ export default function PatientsPage() {
               {data.meta.total} patient{data.meta.total !== 1 ? 's' : ''}
             </span>
           )}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={exportPatients}
+            disabled={(data?.data.length ?? 0) === 0}
+            className="h-10 gap-2 rounded-lg border-border/50 text-[13px]"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
         </div>
       </FadeIn>
 
@@ -134,8 +166,12 @@ export default function PatientsPage() {
         data={data?.data ?? []}
         isLoading={isLoading}
         onRowClick={(row) => router.push(`/dashboard/patients/${row.id}`)}
-        emptyMessage="No patients found"
-        emptyDescription="Register your first patient to get started with the system."
+        emptyMessage={isError ? 'Could not load patients' : 'No patients found'}
+        emptyDescription={
+          isError
+            ? getErrorMessage(error)
+            : 'Register your first patient to get started with the system.'
+        }
         pagination={{
           page,
           totalPages: data?.meta?.totalPages ?? 1,

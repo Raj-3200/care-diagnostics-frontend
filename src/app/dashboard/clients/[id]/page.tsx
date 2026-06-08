@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api, { getErrorMessage } from '@/lib/api';
+import api, { API_BASE_URL, getErrorMessage } from '@/lib/api';
 import type { ApiResponse, User, Patient, ClientReport, Visit } from '@/types';
 import { PageHeader } from '@/components/shared/page-header';
 import { DataTable, Column } from '@/components/shared/data-table';
@@ -46,7 +46,7 @@ import {
 import { PageTransition } from '@/components/shared/page-transition';
 import { FadeIn } from '@/components/shared/animations';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -346,7 +346,7 @@ export default function ClientDetailPage() {
             <div className="space-y-3">
               {clientVisits.map((visit) => (
                 <FadeIn key={visit.id}>
-                  <div className="rounded-xl border border-border/40 bg-white p-4 transition-colors hover:border-border/60">
+                  <div className="rounded-xl border border-border/40 bg-card p-4 transition-colors hover:border-border/60">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-[14px] font-medium text-foreground">
@@ -420,7 +420,7 @@ export default function ClientDetailPage() {
             <div className="space-y-3">
               {reports.map((report: ClientReport) => (
                 <FadeIn key={report.id}>
-                  <div className="flex items-center justify-between rounded-xl border border-border/40 bg-white p-4 transition-colors hover:border-border/60">
+                  <div className="flex items-center justify-between rounded-xl border border-border/40 bg-card p-4 transition-colors hover:border-border/60">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/[0.06]">
                         <FileText className="h-5 w-5 text-primary" />
@@ -447,7 +447,7 @@ export default function ClientDetailPage() {
                     <div className="flex items-center gap-1.5">
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0" asChild>
                         <a
-                          href={`${API_URL.replace('/api/v1', '')}${report.fileUrl}`}
+                          href={`${API_ORIGIN}${report.fileUrl}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -456,7 +456,7 @@ export default function ClientDetailPage() {
                       </Button>
                       <Button size="sm" variant="ghost" className="h-8 w-8 p-0" asChild>
                         <a
-                          href={`${API_URL.replace('/api/v1', '')}${report.fileUrl}`}
+                          href={`${API_ORIGIN}${report.fileUrl}`}
                           download={report.fileName}
                         >
                           <Download className="h-3.5 w-3.5" />
